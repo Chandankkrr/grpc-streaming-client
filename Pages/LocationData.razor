@@ -1,0 +1,90 @@
+﻿@page "/locationdata"
+
+@using threemillion.Data
+@using System.Diagnostics
+
+@using ReactClient
+@using Grpc.Core
+@inject ReactClient.LocationData.LocationDataClient LocationDataClient
+
+@inject IJSRuntime JSRuntime;
+@using Microsoft.AspNetCore.Components.Web.Virtualization;
+
+
+@if (_locations == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="data-input">
+        <label for="dataLimit">No of records to fetch</label>
+        <input id="dataLimit" type="number" @bind="_dataLimit"/>
+        <button @onclick="FetchData" class="btn-submit">Submit</button>
+    </div>
+    <p>
+        <span>Total records: <strong>@_locations.Count</strong></span>
+        <span>Time taken: <strong>@_timeElapsed</strong> milliseconds</span>
+    </p>
+    <br/>
+    <div class="tableFixHead">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Longitude</th>
+                    <th>Latitude</th>
+                </tr>
+            </thead>
+            <tbody>
+                <Virtualize Items="@_locations" Context="locations">
+                    <tr>
+                        <td>@locations.Longitude</td>
+                        <td>@locations.Latitude</td>
+                    </tr>
+                </Virtualize>
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private int _dataLimit = 100;
+    private double _timeElapsed = 0;
+    private List<Location> _locations = new List<Location>();
+    Stopwatch _watch = new Stopwatch();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await FetchData();
+    }
+
+    private async Task FetchData()
+    {
+        _locations.Clear();
+        
+        _watch.Reset();
+        _watch.Start();
+
+        using (var call = LocationDataClient.GetLocationData(new GetLocationRequest { DataLimit = _dataLimit }))
+        {
+            await foreach (var response in call.ResponseStream.ReadAllAsync())
+            {
+                _locations.Add(new Location { Longitude = response.LongitudeE7, Latitude = response.LatitudeE7 });
+            }
+        
+            await UpdateState();
+        }
+    }
+
+    private async Task UpdateState()
+    {
+         await InvokeAsync(() =>
+        {
+             _watch.Stop();
+        
+            _timeElapsed = _watch.ElapsedMilliseconds;
+
+            StateHasChanged();
+        });
+    }
+}

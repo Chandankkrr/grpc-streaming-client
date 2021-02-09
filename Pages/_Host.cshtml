@@ -1,0 +1,174 @@
+﻿@page "/"
+@namespace threemillion.Pages
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>threemillion</title>
+    <base href="~/" />
+    <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css" />
+    <link href="css/site.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mapbox-gl/1.12.0/mapbox-gl.js" integrity="sha512-x4VI1WtMDwnLmWbilyxh5a42yPDkkAeABzUX2y3OrUOCI2H4EXIE8PnJcl0PaeCA0MpuNBw1UfdK+VNceoUp6A==" crossorigin="anonymous"></script>
+    <link href='https://api.mapbox.com/mapbox-assembly/mbx/v0.18.0/assembly.min.css' rel='stylesheet'>
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.39.1/mapbox-gl.css' rel='stylesheet' />
+</head>
+<body>
+    <app>
+        <component type="typeof(App)" render-mode="ServerPrerendered" />
+    </app>
+
+    <div id="blazor-error-ui">
+        <environment include="Staging,Production">
+            An error has occurred. This application may no longer respond until reloaded.
+        </environment>
+        <environment include="Development">
+            An unhandled exception has occurred. See browser dev tools for details.
+        </environment>
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+
+    <div id='map' style="display: none;"></div>
+
+
+    <script src="_framework/blazor.server.js"></script>
+    <script>
+        window.mapBoxFunctions = {
+            initMapBox: function () {
+                mapboxgl.accessToken = 'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4M29iazA2Z2gycXA4N2pmbDZmangifQ.-g_vE53SD2WrJ6tFX7QHmA';
+                window.map = new mapboxgl.Map({
+                    container: 'map',
+                    style: 'mapbox://styles/mapbox/dark-v10',
+                    center: [144.9994491, -37.7569673],
+                    zoom: 2
+                });
+
+                window.map.on('load', function () {
+                    window.map.addSource('earthquakes', {
+                        type: 'geojson',
+                        // Point to GeoJSON data. This example visualizes all M1.0+ earthquakes
+                        // from 12/22/15 to 1/21/16 as logged by USGS' Earthquake hazards program.
+                        data: {
+                            type: "FeatureCollection",
+                            features: [{
+                                type: "Feature",
+                                geometry: {
+                                    type: "Point",
+                                    coordinates: [145.0043582, -37.7563547]
+                                }
+                            }]
+                        },
+                        cluster: true,
+                        clusterMaxZoom: 14, // Max zoom to cluster points on
+                        clusterRadius: 50 // Radius of each cluster when clustering points (defaults to 50)
+                    });
+                    window.map.addLayer({
+                        id: 'clusters',
+                        type: 'circle',
+                        source: 'earthquakes',
+                        filter: ['has', 'point_count'],
+                        paint: {
+                            // Use step expressions (https://docs.mapbox.com/mapbox-gl-js/style-spec/#expressions-step)
+                            // with three steps to implement three types of circles:
+                            //   * Blue, 20px circles when point count is less than 100
+                            //   * Yellow, 30px circles when point count is between 100 and 750
+                            //   * Pink, 40px circles when point count is greater than or equal to 750
+                            'circle-color': [
+                                'step',
+                                ['get', 'point_count'],
+                                '#51bbd6',
+                                100,
+                                '#f1f075',
+                                750,
+                                '#f28cb1'
+                            ],
+                            'circle-radius': [
+                                'step',
+                                ['get', 'point_count'],
+                                20,
+                                100,
+                                30,
+                                750,
+                                40
+                            ]
+                        }
+                    });
+
+                    window.map.addLayer({
+                        id: 'cluster-count',
+                        type: 'symbol',
+                        source: 'earthquakes',
+                        filter: ['has', 'point_count'],
+                        layout: {
+                            'text-field': '{point_count_abbreviated}',
+                            'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
+                            'text-size': 12
+                        }
+                    });
+
+                    window.map.addLayer({
+                        id: 'unclustered-point',
+                        type: 'circle',
+                        source: 'earthquakes',
+                        filter: ['!', ['has', 'point_count']],
+                        paint: {
+                            'circle-color': '#11b4da',
+                            'circle-radius': 4,
+                            'circle-stroke-width': 1,
+                            'circle-stroke-color': '#fff'
+                        }
+                    });
+                })
+                return;
+            },
+            addMarker: function (features) {
+                @*var lngLat = [marker[0] / 1e7, marker[1] / 1e7]
+                var feature = {
+                    type: "Feature",
+                    geometry: {
+                        type: "Point",
+                        coordinates: lngLat
+                    }
+                };
+                var features = marker.map(m => {
+                    var lngLat = [m[0] / 1e7, m[1] / 1e7]
+                    return {
+                        type: "Feature",
+                        geometry: {
+                            type: "Point",
+                            coordinates: lngLat
+                        }
+                    }
+                })*@
+
+
+                @*console.log(lngLat)*@
+                @*var marker1 = new mapboxgl.Marker()
+                    .setLngLat(lngLat)
+                    .addTo(window.map);*@
+                @*var data = window.map.getSource("earthquakes")?._data.features;
+                if(!data){
+                    return;
+                }
+                var a = data.concat(feature)*@
+                @*if (data && typeof (data) !== "string") {
+
+                    a.push(data);
+                } else {
+                    a.push(feature)
+                }*@
+                window.map.getSource("earthquakes").setData({
+                    type: "FeatureCollection",
+                    features
+                });
+            }
+        };
+    </script>
+</body>
+</html>
