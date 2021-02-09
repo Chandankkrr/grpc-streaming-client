@@ -210,6 +210,8 @@ app {
     border-radius: 10px;
     color: #fff;
     padding: 10px;
+    outline: none;
+    border: none;
   }
 
   #dataLimit{
@@ -223,4 +225,13 @@ app {
 
   .data-input{
       margin-bottom: 10px;
+  }
+
+  .info {
+      font-size: 18px;
+  }
+
+  .count, .time{
+      font-size: 25px;
+      font-weight: bold;
   }

@@ -10,23 +10,28 @@
 @inject IJSRuntime JSRuntime;
 @using Microsoft.AspNetCore.Components.Web.Virtualization;
 
-
-@if (_locations == null)
-{
-    <p><em>Loading...</em></p>
-}
-else
-{
-    <div class="data-input">
+    <table class="tableAction">
+            <tbody>
+                    <tr>
+                        <td>
+                            <div class="data-input">
         <label for="dataLimit">No of records to fetch</label>
         <input id="dataLimit" type="number" @bind="_dataLimit"/>
         <button @onclick="FetchData" class="btn-submit">Submit</button>
     </div>
-    <p>
-        <span>Total records: <strong>@_locations.Count</strong></span>
-        <span>Time taken: <strong>@_timeElapsed</strong> milliseconds</span>
+                        </td>
+                        <td>
+    <p class="info">
+        Total records: <span class="count">@_locations.Count</span>
     </p>
-    <br/>
+    <p class="info">
+        Time taken: <span class="time">@_watch.ElapsedMilliseconds</span> milliseconds
+    </p>
+                        </td>
+                    </tr>
+            </tbody>
+        </table>
+    
     <div class="tableFixHead">
         <table class="table">
             <thead>
@@ -45,11 +50,9 @@ else
             </tbody>
         </table>
     </div>
-}
 
 @code {
     private int _dataLimit = 100;
-    private double _timeElapsed = 0;
     private List<Location> _locations = new List<Location>();
     Stopwatch _watch = new Stopwatch();
 
@@ -63,6 +66,9 @@ else
         _locations.Clear();
         
         _watch.Reset();
+
+        await MarkStateChanged();
+        
         _watch.Start();
 
         using (var call = LocationDataClient.GetLocationData(new GetLocationRequest { DataLimit = _dataLimit }))
@@ -71,19 +77,17 @@ else
             {
                 _locations.Add(new Location { Longitude = response.LongitudeE7, Latitude = response.LatitudeE7 });
             }
-        
-            await UpdateState();
         }
+
+        _watch.Stop();
+        
+        await MarkStateChanged();
     }
 
-    private async Task UpdateState()
+    private async Task MarkStateChanged()
     {
          await InvokeAsync(() =>
         {
-             _watch.Stop();
-        
-            _timeElapsed = _watch.ElapsedMilliseconds;
-
             StateHasChanged();
         });
     }
