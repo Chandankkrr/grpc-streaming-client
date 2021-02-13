@@ -26,9 +26,11 @@ namespace threemillion
             services.AddServerSideBlazor();
             services.AddSingleton<WeatherForecastService>();
 
+
             services.AddGrpcClient<LocationData.LocationDataClient>(client =>
             {
                 client.Address = new Uri("http://localhost:80");
+                client.ChannelOptionsActions.Add(l => l.MaxReceiveMessageSize = null);
             });
         }
 
