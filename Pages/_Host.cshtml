@@ -121,7 +121,13 @@
                 return;
             },
             addClusterData: function (features) {
-                window.map.getSource("travelledLocations").setData({
+                var travelledLocations = window.map.getSource("travelledLocations")
+                travelledLocations.setData({
+                    type: "FeatureCollection",
+                    features: []
+                });
+
+                travelledLocations.setData({
                     type: "FeatureCollection",
                     features
                 });
