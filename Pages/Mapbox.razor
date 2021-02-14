@@ -1,0 +1,105 @@
+﻿@page "/mapbox"
+
+@using System.Diagnostics
+
+@using ReactClient
+@using Grpc.Core
+
+@inject ReactClient.LocationData.LocationDataClient LocationDataClient
+@inject System.Net.Http.IHttpClientFactory _clientFactory
+@inject IJSRuntime JSRuntime;
+
+<table class="tableAction">
+    <tbody>
+        <tr>
+            <td>
+                <div class="data-input">
+                    <label for="dataLimit">No of records to fetch</label>
+                    <input id="dataLimit" type="number" @bind="_dataLimit" />
+                    <button @onclick="LoadMap" class="btn-submit">Load data</button>
+                </div>
+            </td>
+            <td>
+                <p class="info">
+                    Total records: <span class="count">@_locations.Count</span>
+                </p>
+                <p class="info">
+                    Time taken: <span class="time">@_stopWatch.ElapsedMilliseconds</span> milliseconds
+                </p>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<div id='map' style="width: 100%; height: 90vh;"></div>
+
+@code {
+    private int _dataLimit = 100;
+
+    private List<object> _locations = new List<object>();
+
+    private Stopwatch _stopWatch = new Stopwatch();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        await JSRuntime.InvokeVoidAsync("mapBoxFunctions.initMapBox");
+    }
+
+    private async Task LoadMap()
+    {
+        ResetState();
+
+        await MarkStateChanged();
+
+        _stopWatch.Start();
+
+        using (var call = LocationDataClient.GetLocationData(new GetLocationRequest { DataLimit = _dataLimit }))
+        {
+
+            await foreach (var response in call.ResponseStream.ReadAllAsync())
+            {
+                var pow = Math.Pow(10, 7);
+                var longitude = response.LongitudeE7 / pow;
+                var latitude = response.LatitudeE7 / pow;
+
+                _locations.Add(new
+                {
+                    type = "Feature",
+                    geometry = new
+                    {
+                        type = "Point",
+                        coordinates = new double[] { longitude, latitude }
+                    }
+                });
+
+                StateHasChanged();
+            }
+
+            _stopWatch.Stop();
+
+            await MarkStateChanged();
+
+            await JSRuntime.InvokeVoidAsync("mapBoxFunctions.addClusterData", _locations);
+        }
+    }
+
+    private void ResetState()
+    {
+        _locations.Clear();
+
+        _stopWatch.Reset();
+    }
+
+    private async Task MarkStateChanged()
+    {
+        await InvokeAsync(() =>
+        {
+            StateHasChanged();
+        });
+    }
+}
