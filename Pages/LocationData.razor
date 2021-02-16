@@ -1,15 +1,15 @@
 ﻿@page "/locationdata"
 
+
+@using Grpc.Core
+@using ReactClient
 @using threemillion.Data
 @using System.Diagnostics
-
-@using ReactClient
-@using Grpc.Core
 @using Microsoft.AspNetCore.Components.Web.Virtualization
 
-@inject ReactClient.LocationData.LocationDataClient LocationDataClient
-@inject System.Net.Http.IHttpClientFactory _clientFactory
 @inject IJSRuntime JSRuntime;
+@inject System.Net.Http.IHttpClientFactory _clientFactory
+@inject ReactClient.LocationData.LocationDataClient _locationDataClient
 
 <table class="tableAction">
     <tbody>
@@ -53,7 +53,7 @@
 </div>
 
 @code {
-    private int _dataLimit = 100;
+    private int _dataLimit = 1000;
 
     private List<Location> _locations = new List<Location>();
 
@@ -68,12 +68,9 @@
     {
         ResetState();
 
-        await MarkStateChanged();
-
         _stopWatch.Start();
 
-
-        using (var call = LocationDataClient.GetLocationData(new GetLocationRequest { DataLimit = _dataLimit }))
+        using (var call = _locationDataClient.GetLocationData(new GetLocationRequest { DataLimit = _dataLimit }))
         {
             await foreach (var response in call.ResponseStream.ReadAllAsync())
             {
@@ -84,8 +81,6 @@
         }
 
         _stopWatch.Stop();
-
-        await MarkStateChanged();
     }
 
     private void ResetState()
@@ -93,13 +88,6 @@
         _locations.Clear();
 
         _stopWatch.Reset();
-    }
-
-    private async Task MarkStateChanged()
-    {
-        await InvokeAsync(() =>
-        {
-            StateHasChanged();
-        });
+        StateHasChanged();
     }
 }
