@@ -30,6 +30,7 @@ namespace threemillion
             services.AddGrpcClient<LocationData.LocationDataClient>(client =>
             {
                 client.Address = new Uri("http://localhost:80");
+                // client.Address = new Uri("http://localhost:7000");
                 client.ChannelOptionsActions.Add(l => l.MaxReceiveMessageSize = null);
             });
         }

@@ -3,48 +3,47 @@
 @using Grpc.Core
 @using ReactClient
 @using System.Diagnostics
-@using System.Threading.Tasks
 
-@inject IJSRuntime JSRuntime;
-@inject System.Net.Http.IHttpClientFactory _clientFactory
+@inject IJSRuntime _jsRuntime;
+@inject IHttpClientFactory _clientFactory
 @inject ReactClient.LocationData.LocationDataClient _locationDataClient
 
 <table class="tableAction">
     <tbody>
-        <tr>
-            <td>
-                <div class="data-input">
-                    <label for="dataLimit">No of records to fetch</label>
-                    <input id="dataLimit" type="number" @bind="_dataLimit" />
-                    <button @onclick="FetchDataAndUpdateMap" class="btn-submit">Load data</button>
-                </div>
-            </td>
-            <td>
-                <p class="info">
-                    Total records: <span class="count">@_locations.Count</span>
-                </p>
-                <p class="info">
-                    Time taken: <span class="time">@_stopWatch.ElapsedMilliseconds</span> milliseconds
-                </p>
-            </td>
-        </tr>
+    <tr>
+        <td>
+            <div class="data-input">
+                <label for="dataLimit">No of records to fetch</label>
+                <input id="dataLimit" type="number" @bind="_dataLimit"/>
+                <button @onclick="FetchDataAndUpdateMap" class="btn-submit">Load data</button>
+            </div>
+        </td>
+        <td>
+            <p class="info">
+                Total records: <span class="count">@_locations.Count.ToString()</span>
+            </p>
+            <p class="info">
+                Time taken: <span class="time">@_stopWatch.ElapsedMilliseconds.ToString()</span> milliseconds
+            </p>
+        </td>
+    </tr>
     </tbody>
 </table>
 
-<div id='map' style="width: 100%; height: 90vh;"></div>
+<div id="map" style="width: 100%; height: 90vh;"></div>
 
 @code {
     private int _dataLimit = 1000;
 
-    private List<object> _locations = new List<object>();
+    private readonly List<object> _locations = new();
 
-    private Stopwatch _stopWatch = new Stopwatch();
+    private readonly Stopwatch _stopWatch = new();
 
-    private static Func<Task> func;
+    private static Func<Task> _func;
 
     protected override void OnInitialized()
     {
-        func = new Func<Task>(FetchDataAndUpdateMap);
+        _func = FetchDataAndUpdateMap;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -54,13 +53,13 @@
             return;
         }
 
-        await JSRuntime.InvokeVoidAsync("mapBoxFunctions.initMapBox");
+        await _jsRuntime.InvokeVoidAsync("mapBoxFunctions.initMapBox");
     }
 
     [JSInvokable]
     public static void LoadClusterData()
     {
-        func.Invoke();
+        _func.Invoke();
     }
 
     private async Task FetchDataAndUpdateMap()
@@ -69,31 +68,34 @@
 
         _stopWatch.Start();
 
-        using (var call = _locationDataClient.GetLocationData(new GetLocationRequest { DataLimit = _dataLimit }))
-        {
-            await foreach (var response in call.ResponseStream.ReadAllAsync())
+        using var call = _locationDataClient.GetLocations(
+            new GetLocationsRequest
             {
-                var pow = Math.Pow(10, 7);
-                var longitude = response.LongitudeE7 / pow;
-                var latitude = response.LatitudeE7 / pow;
+                DataLimit = _dataLimit
+            });
+        
+        await foreach (var response in call.ResponseStream.ReadAllAsync())
+        {
+            var pow = Math.Pow(10, 7);
+            var longitude = response.LongitudeE7 / pow;
+            var latitude = response.LatitudeE7 / pow;
 
-                _locations.Add(new
+            _locations.Add(new
+            {
+                type = "Feature",
+                geometry = new
                 {
-                    type = "Feature",
-                    geometry = new
-                    {
-                        type = "Point",
-                        coordinates = new double[] { longitude, latitude }
-                    }
-                });
+                    type = "Point",
+                    coordinates = new[] { longitude, latitude }
+                }
+            });
 
-                StateHasChanged();
-            }
-
-            _stopWatch.Stop();
-
-            await JSRuntime.InvokeVoidAsync("mapBoxFunctions.addClusterData", _locations);
+            StateHasChanged();
         }
+
+        _stopWatch.Stop();
+
+        await _jsRuntime.InvokeVoidAsync("mapBoxFunctions.addClusterData", _locations);
     }
 
     private void ResetState()
@@ -104,4 +106,5 @@
 
         StateHasChanged();
     }
+
 }

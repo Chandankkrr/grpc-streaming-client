@@ -7,47 +7,47 @@
 @using System.Diagnostics
 @using Microsoft.AspNetCore.Components.Web.Virtualization
 
-@inject IJSRuntime JSRuntime;
-@inject System.Net.Http.IHttpClientFactory _clientFactory
+@inject IJSRuntime _jsRuntime;
+@inject IHttpClientFactory _clientFactory
 @inject ReactClient.LocationData.LocationDataClient _locationDataClient
 
 <table class="tableAction">
     <tbody>
-        <tr>
-            <td>
-                <div class="data-input">
-                    <label for="dataLimit">No of records to fetch</label>
-                    <input id="dataLimit" type="number" @bind="_dataLimit" />
-                    <button @onclick="FetchData" class="btn-submit">Call gRPC</button>
-                </div>
-            </td>
-            <td>
-                <p class="info">
-                    Total records: <span class="count">@_locations.Count</span>
-                </p>
-                <p class="info">
-                    Time taken: <span class="time">@_stopWatch.ElapsedMilliseconds</span> milliseconds
-                </p>
-            </td>
-        </tr>
+    <tr>
+        <td>
+            <div class="data-input">
+                <label for="dataLimit">No of records to fetch</label>
+                <input id="dataLimit" type="number" @bind="_dataLimit"/>
+                <button @onclick="FetchData" class="btn-submit">Call gRPC</button>
+            </div>
+        </td>
+        <td>
+            <p class="info">
+                Total records: <span class="count">@_locations.Count.ToString()</span>
+            </p>
+            <p class="info">
+                Time taken: <span class="time">@_stopWatch.ElapsedMilliseconds.ToString()</span> milliseconds
+            </p>
+        </td>
+    </tr>
     </tbody>
 </table>
 
 <div class="tableFixHead">
     <table class="table">
         <thead>
-            <tr>
-                <th>Longitude</th>
-                <th>Latitude</th>
-            </tr>
+        <tr>
+            <th>Longitude</th>
+            <th>Latitude</th>
+        </tr>
         </thead>
         <tbody>
-            <Virtualize Items="@_locations" Context="locations">
-                <tr>
-                    <td>@locations.LongitudeE7</td>
-                    <td>@locations.LatitudeE7</td>
-                </tr>
-            </Virtualize>
+        <Virtualize Items="@_locations" Context="locations">
+            <tr>
+                <td>@locations.LongitudeE7.ToString()</td>
+                <td>@locations.LatitudeE7.ToString()</td>
+            </tr>
+        </Virtualize>
         </tbody>
     </table>
 </div>
@@ -55,9 +55,9 @@
 @code {
     private int _dataLimit = 1000;
 
-    private List<Location> _locations = new List<Location>();
+    private List<Location> _locations = new();
 
-    private Stopwatch _stopWatch = new Stopwatch();
+    private Stopwatch _stopWatch = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -70,7 +70,7 @@
 
         _stopWatch.Start();
 
-        using (var call = _locationDataClient.GetLocationData(new GetLocationRequest { DataLimit = _dataLimit }))
+        using (var call = _locationDataClient.GetLocations(new GetLocationsRequest { DataLimit = _dataLimit }))
         {
             await foreach (var response in call.ResponseStream.ReadAllAsync())
             {
@@ -90,4 +90,5 @@
         _stopWatch.Reset();
         StateHasChanged();
     }
+
 }
